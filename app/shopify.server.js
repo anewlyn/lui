@@ -37,7 +37,7 @@ const shopify = shopifyApp({
           // Optionally, restrict further functionality here.
           return;
         }
-  
+
         // Enable full functionality for eligible customers
         await shopify.registerWebhooks({ session });
         const addressesData = await getAddresses(admin);
@@ -86,7 +86,11 @@ const queryAddresses = {
             locations(first: 2, sortKey:UPDATED_AT, reverse: true) {
               nodes {
                 id
-                metafields(identifiers:[{namespace:"locator",key:"locatable"}, {namespace:"locator",key:"custom_name"}]) {
+                metafields(identifiers:[
+                  {namespace:"locator",key:"locatable"}, 
+                  {namespace:"locator",key:"custom_name"},
+                  {namespace:"locator",key:"custom_phone"}
+                ]) {
                   namespace
                   key
                   value

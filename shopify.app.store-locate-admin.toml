@@ -1,0 +1,23 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "adcc4e87b758a5f6363096ac8bd01a43"
+name = "store-locate-admin"
+handle = "store-locate-admin"
+application_url = "https://example.com/"
+embedded = true
+
+[build]
+include_config_on_deploy = true
+
+[webhooks]
+api_version = "2025-07"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "customer_read_companies,customer_read_customers,customer_read_locations,customer_read_orders,customer_write_companies,customer_write_customers,customer_write_locations,read_customers,read_orders"
+
+[auth]
+redirect_urls = [ "https://example.com/api/auth" ]
+
+[pos]
+embedded = false

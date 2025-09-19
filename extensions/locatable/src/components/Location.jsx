@@ -1,18 +1,23 @@
 import { Badge, Banner, BlockLayout, BlockSpacer, BlockStack, Button, Card, Grid, Heading, HeadingGroup, Icon, InlineLayout, InlineSpacer, Link, List, ListItem, Modal, Pressable, Switch, Text, TextBlock, TextField, Tooltip, useApi, View } from "@shopify/ui-extensions-react/customer-account"
 import { useEffect, useState } from "react"
 import { CustomNameModal } from "./CustomNameModal.jsx"
+import { PhoneNumberModal } from "./PhoneNumberModal.jsx"
 
 export const Location = ({location, saveLocatableState}) => {
     const [isLocatable, setIsLocatable] = useState(location.locatable)
     const [newName, setNewName] = useState(false)
     const [customName, setCustomName] = useState(location.customName)
+    const [customPhone, setCustomPhone] = useState(location.customPhone)
     const [success, setSuccess] = useState(false)
+    const [phoneSuccess, setPhoneSuccess] = useState(false)
     
     function handleSwitch() {
         const locatable = isLocatable == 'true' ? 'false' : 'true'
         saveLocatableState(location.locationId, locatable)
         setIsLocatable(locatable)
     }
+
+    // Name change handlers
     async function handleNameChange(name) {
         setSuccess(false)
         try {
@@ -39,8 +44,33 @@ export const Location = ({location, saveLocatableState}) => {
         }
     }
 
+    // Phone change handlers
+    async function handlePhoneChange(phone) {
+        setPhoneSuccess(false)
+        try {
+            await saveCustomPhone(location.locationId, phone)
+            setCustomPhone(phone)
+            console.log('Phone change successful.')
+            setPhoneSuccess(true)
+        } catch(err) {
+            setCustomPhone(location.customPhone || '')
+            console.warn('Error changing phone.', err)
+        }
+    }
+    async function handlePhoneDelete() {
+        setPhoneSuccess(false)
+        try {
+            await deleteCustomPhone(location.locationId)
+            setCustomPhone(null)
+            setPhoneSuccess(true)
+        } catch(err) {
+            console.warn('Error deleting phone.', err)
+        }
+    }
+
+    // API Functions
     function saveCustomName(locationId, customName) {
-        fetch("shopify:customer-account/api/2025-01/graphql.json", {
+        return fetch("shopify:customer-account/api/2025-01/graphql.json", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -75,8 +105,9 @@ export const Location = ({location, saveLocatableState}) => {
             }),
         })
     }
+
     function deleteCustomName(locationId) {
-        fetch("shopify:customer-account/api/2025-01/graphql.json", {
+        return fetch("shopify:customer-account/api/2025-01/graphql.json", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -101,6 +132,76 @@ export const Location = ({location, saveLocatableState}) => {
                         ownerId: locationId,
                         namespace: "locator",
                         key: "custom_name",
+                    },
+                    ],
+                },
+            }),
+        })
+    }
+
+    function saveCustomPhone(locationId, customPhone) {
+        return fetch("shopify:customer-account/api/2025-01/graphql.json", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                query: `mutation saveCustomPhone($metafields: [MetafieldsSetInput!]!) {
+                            metafieldsSet(metafields: $metafields) {
+                                metafields {
+                                    id
+                                    namespace
+                                    key
+                                    value
+                                    updatedAt
+                                }
+                                userErrors {
+                                    field
+                                    message
+                                }
+                            }
+                        }`,
+                variables: {
+                    metafields: [
+                    {
+                        ownerId: locationId,
+                        namespace: "locator",
+                        key: "custom_phone",
+                        value: customPhone,
+                        type: 'single_line_text_field',
+                    },
+                    ],
+                },
+            }),
+        })
+    }
+
+    function deleteCustomPhone(locationId) {
+        return fetch("shopify:customer-account/api/2025-01/graphql.json", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                query: `mutation deleteCustomPhone($metafields: [MetafieldIdentifierInput!]!) {
+                            metafieldsDelete(metafields: $metafields) {
+                                deletedMetafields {
+                                    ownerId
+                                    namespace
+                                    key
+                                }
+                                userErrors {
+                                    field
+                                    message
+                                }
+                            }
+                        }`,
+                variables: {
+                    metafields: [
+                    {
+                        ownerId: locationId,
+                        namespace: "locator",
+                        key: "custom_phone",
                     },
                     ],
                 },
@@ -138,7 +239,32 @@ export const Location = ({location, saveLocatableState}) => {
             </InlineLayout>
             <View padding='base'>
                 <List marker='none'>
-                    <ListItem>{location.shippingAddress.phone ?? <Text appearance='warning' emphasis='italic'>Phone Recommended</Text>}</ListItem>
+                    <ListItem>
+                        <InlineLayout columns={['fill', 'auto']} blockAlignment='center'>
+                            <Text>
+                                {customPhone || location.shippingAddress.phone || (
+                                    <Text appearance='warning' emphasis='italic'>Phone Recommended</Text>
+                                )}
+                            </Text>
+                            <Link 
+                                overlay={
+                                    <PhoneNumberModal 
+                                        success={phoneSuccess} 
+                                        customPhone={customPhone} 
+                                        setSuccess={setPhoneSuccess} 
+                                        handlePhoneDelete={handlePhoneDelete} 
+                                        originalPhone={location.shippingAddress.phone} 
+                                        handlePhoneChange={handlePhoneChange}
+                                        locationId={location.locationId}
+                                    />
+                                }
+                            >
+                                <Text size='small' appearance='subdued'>
+                                    {customPhone || location.shippingAddress.phone ? 'Edit' : 'Add Phone'}
+                                </Text>
+                            </Link>
+                        </InlineLayout>
+                    </ListItem>
                     <ListItem>{location.shippingAddress.line1}</ListItem>
                     {location.shippingAddress.line2 && <ListItem>{location.shippingAddress.line2}</ListItem>}
                     <ListItem>{location.shippingAddress.state}</ListItem>
